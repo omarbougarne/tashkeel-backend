@@ -1,18 +1,35 @@
 version: '3.8'
 
 services:
-  postgres:
+  db:
     image: postgres:16
-    container_name: lovable-postgres
-    restart: always
+    container_name: tashkeel-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: tashkeel
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: tashkeel-api
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: postgres
+      DB_NAME: tashkeel
+      JWT_SECRET: "oR91frDT4UM2aDmXUI9L6OnVOhkCqxXmWmpCPomxbKn"
+      JWT_EXPIRES_IN: "1d"
+    ports:
+      - "3000:3000"
 
 volumes:
   pgdata:
