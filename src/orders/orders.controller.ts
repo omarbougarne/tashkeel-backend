@@ -16,6 +16,7 @@ import { extname } from 'path';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OrdersService } from './orders.service';
 import { UploadsService } from '../uploads/uploads.service';
+import { GenerateDto } from './dto/generate.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -101,5 +102,17 @@ async history(@Req() req: any) {
     amount_paid: o.amountPaid ?? 0,
     uploads: o.uploads ?? [],
   }));
+}
+
+@UseGuards(JwtAuthGuard)
+@Post('generate')
+async generate(@Req() req: any, @Body() dto: GenerateDto) {
+  const userId = req.user.id;
+  const order = await this.ordersService.createDesignRequest(userId, dto);
+
+  return {
+    success: true,
+    data: order,
+  };
 }
 }
