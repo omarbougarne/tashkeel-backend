@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Post,
+  Get,
   Req,
   UploadedFile,
   UseGuards,
@@ -78,4 +79,27 @@ export class OrdersController {
       },
     };
   }
+
+  @UseGuards(JwtAuthGuard)
+@Get('history')
+async history(@Req() req: any) {
+  const userId = req.user.id;
+  const orders = await this.ordersService.findHistoryForUser(userId);
+
+  
+  return orders.map((o) => ({
+    id: String(o.id),
+    order_number: `ORD-${o.id}`,
+    title: o.title,
+    service_type: o.serviceType,
+    status: 'received',                    
+    estimated_price: o.estimatedPrice ?? null,
+    created_at: o.createdAt,
+    is_design_request: o.isDesignRequest,
+    can_cancel: true,                      
+    payment_status: o.paymentStatus ?? 'pending',
+    amount_paid: o.amountPaid ?? 0,
+    uploads: o.uploads ?? [],
+  }));
+}
 }
