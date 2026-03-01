@@ -9,6 +9,14 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -18,6 +26,9 @@ import { OrdersService } from './orders.service';
 import { UploadsService } from '../uploads/uploads.service';
 import { GenerateDto } from './dto/generate.dto';
 
+
+@ApiTags('Orders')
+@ApiBearerAuth()
 @Controller('orders')
 export class OrdersController {
   constructor(
@@ -39,6 +50,43 @@ export class OrdersController {
       }),
     }),
   )
+  @ApiOperation({ summary: 'Upload a manufacturing design file with order metadata' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['file'],
+      properties: {
+        file:          { type: 'string', format: 'binary' },
+        title:         { type: 'string' },
+        serviceType:   { type: 'string' },
+        material:      { type: 'string' },
+        dimensions:    { type: 'string' },
+        quantity:      { type: 'number' },
+        notes:         { type: 'string' },
+        paymentMethod: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 201, description: 'Order created with uploaded file' })
+  @ApiResponse({ status: 400, description: 'File is required' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (_req, file, cb) => {
+          const ext = extname(file.originalname);
+          const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+          cb(null, unique);
+        },
+      }),
+    }),
+  )
+
+  @ApiResponse({ status: 201, description: 'Order created with uploaded file' })
+  @ApiResponse({ status: 400, description: 'File is required' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async uploadOrder(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: any,
@@ -82,7 +130,10 @@ export class OrdersController {
   }
 
   @UseGuards(JwtAuthGuard)
-@Get('history')
+  @Get('history')
+  @ApiOperation({ summary: "Get the authenticated user's order history" })
+  @ApiResponse({ status: 200, description: 'List of user orders' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
 async history(@Req() req: any) {
   const userId = req.user.id;
   const orders = await this.ordersService.findHistoryForUser(userId);
@@ -106,6 +157,10 @@ async history(@Req() req: any) {
 
 @UseGuards(JwtAuthGuard)
 @Post('generate')
+@ApiOperation({ summary: 'Create a design request (no file required)' })
+@ApiBody({ type: GenerateDto })
+@ApiResponse({ status: 201, description: 'Design request created successfully' })
+@ApiResponse({ status: 401, description: 'Unauthorized' })
 async generate(@Req() req: any, @Body() dto: GenerateDto) {
   const userId = req.user.id;
   const order = await this.ordersService.createDesignRequest(userId, dto);
