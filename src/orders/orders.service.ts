@@ -34,7 +34,6 @@ export class OrdersService {
  async createDesignRequest(userId: number, dto: GenerateDto) {
   const order = this.ordersRepo.create({
     userId, 
-
     serviceType: 'product_design',
     title: dto.title,
 
